@@ -17,7 +17,10 @@ using namespace std;
 #define SM_NUM  8
 
 int main (int argc, char *argv[]) {
-    std::string outfile = "log_mem.txt";
+    remove( "log_tranditional.txt" );
+    std::string outfile = "log_tranditional.txt";
+
+    cudaError_t cuda_ret;
 
 
     float *A_h, *B_h, *C_h;
@@ -40,8 +43,7 @@ int main (int argc, char *argv[]) {
         C_h = (float*) malloc( sizeof(float)*C_sz );
         Timer timer;
     
-        stopTime(&timer); printf("%f s\n", elapsedTime(timer));
-        printf("    size Of vector: %u x %u\n  ", VecSize);
+        printf("Size Of vector: %u x %u\n  ", VecSize);
     
         // Allocate device variables ----------------------------------------------
     
@@ -71,6 +73,17 @@ int main (int argc, char *argv[]) {
         std::string end_time1 = std::to_string(elapsedTime(timer) * 1000);
     
         // Launch kernel  ---------------------------
+        basicVecAdd(A_d, B_d, C_d, VecSize); //In kernel.cu
+
+        cuda_ret = cudaDeviceSynchronize();
+        if(cuda_ret != cudaSuccess) {
+            // FATAL("Unable to launch kernel");
+            fprintf(stderr, "Unable to launch kernel\n");
+            exit(-1);
+        }
+        stopTime(&timer); printf("%f s\n", elapsedTime(timer));
+        std::string end_time2 = std::to_string(elapsedTime(timer) * 1000);
+
         // Copy device variables from host ----------------------------------------
     
         printf("Copying data from device to host..."); fflush(stdout);
@@ -80,7 +93,7 @@ int main (int argc, char *argv[]) {
     
         cudaDeviceSynchronize();
         stopTime(&timer); printf("%f s\n", elapsedTime(timer));
-        std::string end_time2 = std::to_string(elapsedTime(timer) * 1000);
+        std::string end_time3 = std::to_string(elapsedTime(timer) * 1000);
     
     
     
@@ -103,10 +116,11 @@ int main (int argc, char *argv[]) {
 
         std::ofstream out;
         out.open(outfile, std::ios::app);
-        out << "time0: " << end_time0 << std::endl;
-        out << "time1: " << end_time1 << std::endl;
-        out << "time2: " << end_time2 << std::endl;
-        out << "stoptime: " << stop_time << std::endl;
+        out << "time0: " << end_time0 << std::endl;     // after alloc mem
+        out << "time1: " << end_time1 << std::endl;     // after copied to device from host
+        out << "time2: " << end_time2 << std::endl;     // after kernel execution
+        out << "time3: " << end_time2 << std::endl;     // after copied to host from device
+        out << "stoptime: " << stop_time << std::endl;  // after cooled down
 
         wait(NULL);
     }else if (cp == 0) {

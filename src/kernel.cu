@@ -1,32 +1,34 @@
-#include <stdint.h>
+#include <stdio.h>
+#include <math.h>
 
-__device__ inline uint64_t GlobalTimer64(void) {
-    volatile uint64_t reading;
-    asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(reading));
-    return reading;
-}
+__global__ void VecAdd(int n, const float *A, const float *B, float* C) {
 
-static __device__ __inline__ unsigned int GetSMID(void) {
-    unsigned int ret;
-    asm volatile("mov.u32 %0, %%smid;" : "=r"(ret));
-    return ret;
-}
+    /********************************************************************
+     *
+     * Compute C = A + B
+     *   where A is a (1 * n) vector
+     *   where B is a (1 * n) vector
+     *   where C is a (1 * n) vector
+     *
+     ********************************************************************/
 
-
-
-
-static __global__ void kernel_func(uint64_t in) {
-    uint64_t curr_time = 0;
-    for (uint64_t i = 0; i < in; i++) {
-        // may conflict when reading from the same reg concurrently
-        // same results were gotten when I bypass this
-        curr_time = GlobalTimer64();
-     /* 
-        int temp = temp % i;
-        for (uint64_t j = 0; j < 2; j++) {
-            temp %= j;
-            temp += threadIdx.x;
-        } */
-
+    // INSERT KERNEL CODE HERE
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if(tid < n) {
+        C[tid] = A[tid] + B[tid];
     }
+}
+
+
+void basicVecAdd( float *A,  float *B, float *C, int n)
+{
+
+    // Initialize thread block and kernel grid dimensions ---------------------
+
+    const unsigned int BLOCK_SIZE = 256; 
+    
+    //INSERT CODE HERE
+    const unsigned int GRID_SIZE = (int)ceil((float(n)) / BLOCK_SIZE);
+    VecAdd <<<GRID_SIZE, BLOCK_SIZE>>> (n, A, B, C);
+
 }
